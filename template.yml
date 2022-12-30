@@ -1,0 +1,141 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'EC2 with browser supported GUI using noVNC'
+
+Parameters:
+  Ec2InstanceType:
+    Type: String
+    Default: t2.micro
+    Description: Enter EC2 instance type to use for the instance
+
+  Ec2Ami:
+    Type: AWS::EC2::Image::Id
+    Default: ami-005b11f8b84489615
+    Description: Enter AMI to use for the EC2 instance
+
+  NoVncPort:
+    Type: Number
+    Default: 6080
+    Description: Enter port for noVNC access
+
+  VncDimensions:
+    Type: String
+    Default: 1280x720
+    Description: Enter dimensions for VNC session
+
+  VncPassword:
+    Type: String
+    Default: password
+    Description: Enter password for noVNC access
+    
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-vpc
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-internet-gateway
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-subnet
+
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-route-table
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AWS::StackName}-security-group
+      GroupDescription: Security group for VNC access over noVNC
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - Description: noVNC
+          IpProtocol: tcp
+          FromPort: !Ref NoVncPort
+          ToPort: !Ref NoVncPort
+          CidrIp: 0.0.0.0/0
+    
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref Ec2Ami
+      InstanceType: !Ref Ec2InstanceType
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: "0"
+          Description: Network interface for EC2 instance
+          GroupSet:
+            - !Ref SecurityGroup
+          SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-server
+      UserData:
+          Fn::Base64: !Sub |
+              #!/bin/bash
+              sudo amazon-linux-extras install mate-desktop1.x epel
+              sudo yum install -y tigervnc-server chromium novnc python-websockify numpy
+              sudo bash -c 'echo PREFERRED=/usr/bin/mate-session > /etc/sysconfig/desktop'
+              useradd vncuser
+              echo "vncuser:${VncPassword}" | chpasswd
+              mkdir /home/vncuser/.vnc
+              chown -R vncuser:vncuser /home/vncuser/.vnc
+              su -l -c 'printf "${VncPassword}\n${VncPassword}\n\n" | vncpasswd' vncuser
+              chmod 600 /home/vncuser/.vnc/passwd
+              sudo mkdir /etc/tigervnc
+              sudo bash -c 'echo geometry=${VncDimensions} > /etc/tigervnc/vncserver-config-mandatory'
+              sudo cp /lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@.service
+              sudo sed -i 's/<USER>/vncuser/g' /etc/systemd/system/vncserver@.service
+              sudo systemctl daemon-reload
+              sudo systemctl enable vncserver@:1
+              sudo systemctl start vncserver@:1
+              websockify -D --web=/usr/share/novnc/ ${NoVncPort} localhost:5901
+
+Outputs:
+  AccessUrl:
+    Description: URL to access the noVNC interface through a web browser
+    Value: !Sub "http://${EC2Instance.PublicIp}:${NoVncPort}"
+
