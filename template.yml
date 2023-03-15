@@ -9,7 +9,7 @@ Parameters:
 
   Ec2Ami:
     Type: AWS::EC2::Image::Id
-    Default: ami-005b11f8b84489615
+    Default: ami-0fec2c2e2017f4e7b
     Description: Enter AMI to use for the EC2 instance
 
   NoVncPort:
@@ -116,22 +116,22 @@ Resources:
       UserData:
           Fn::Base64: !Sub |
               #!/bin/bash
-              sudo amazon-linux-extras install mate-desktop1.x epel
-              sudo yum install -y tigervnc-server chromium novnc python-websockify numpy
-              sudo bash -c 'echo PREFERRED=/usr/bin/mate-session > /etc/sysconfig/desktop'
-              useradd vncuser
-              echo "vncuser:${VncPassword}" | chpasswd
-              mkdir /home/vncuser/.vnc
-              chown -R vncuser:vncuser /home/vncuser/.vnc
-              su -l -c 'printf "${VncPassword}\n${VncPassword}\n\n" | vncpasswd' vncuser
-              chmod 600 /home/vncuser/.vnc/passwd
-              sudo mkdir /etc/tigervnc
-              sudo bash -c 'echo geometry=${VncDimensions} > /etc/tigervnc/vncserver-config-mandatory'
-              sudo cp /lib/systemd/system/vncserver@.service /etc/systemd/system/vncserver@.service
-              sudo sed -i 's/<USER>/vncuser/g' /etc/systemd/system/vncserver@.service
-              sudo systemctl daemon-reload
-              sudo systemctl enable vncserver@:1
-              sudo systemctl start vncserver@:1
+              sudo apt-get update
+              sudo sh -c "DEBIAN_FRONTEND=noninteractive apt-get install -q -y xorg"
+              sudo apt-get install -q -y dbus-x11 tightvncserver novnc dwm chromium git
+              sudo useradd vncuser -m
+              sudo echo "vncuser:${VncPassword}" | sudo chpasswd
+              sudo mkdir /home/vncuser/.vnc
+              sudo chown -R vncuser:vncuser /home/vncuser/.vnc
+              sudo su -l -c 'printf "${VncPassword}\n${VncPassword}\n\n" | vncpasswd' vncuser
+              sudo chmod 600 /home/vncuser/.vnc/passwd
+              sudo ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+
+              git clone https://github.com/jwstanly/ec2-web-gui.git
+              sudo cp ec2-web-gui/dwm /usr/bin/dwm
+              sudo chmod +x /usr/bin/dwm
+
+              sudo su -l -c "vncserver" vncuser
               websockify -D --web=/usr/share/novnc/ ${NoVncPort} localhost:5901
 
 Outputs:
