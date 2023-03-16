@@ -1,0 +1,1 @@
+char* fullResponse = "HTTP/1.1 503 OK\r\nDate: Mon, 27 Jul 2009 12:28:53 GMT\r\nServer: Apache/2.2.14 (Win32)\r\nLast-Modified: Wed, 22 Jul 2009 19:15:56 GMT\r\nContent-Length: 14\r\nContent-Type: text/html\r\nConnection: Closed\r\n\r\nToo many users";
