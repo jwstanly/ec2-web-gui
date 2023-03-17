@@ -4,12 +4,12 @@ Description: 'EC2 with browser supported GUI using noVNC'
 Parameters:
   Ec2InstanceType:
     Type: String
-    Default: t2.micro
+    Default: t4g.micro
     Description: Enter EC2 instance type to use for the instance
 
   Ec2Ami:
     Type: AWS::EC2::Image::Id
-    Default: ami-0fec2c2e2017f4e7b
+    Default: ami-0e6694e5116a0086f
     Description: Enter AMI to use for the EC2 instance
 
   NoVncPort:
