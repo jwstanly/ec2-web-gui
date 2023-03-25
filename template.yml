@@ -142,9 +142,9 @@ Resources:
               sudo cp ec2-web-gui/launch_chromium /usr/bin/launch_chromium
               sudo chmod +x /usr/bin/dwm
 
-              ec2-web-gui/launch_vnc ${NoVncPort} ${VncNum}
+              ec2-web-gui/launch_vnc ${NoVncPortIntervalStart} ${NoVncPortIntervalEnd}
 
 Outputs:
   AccessUrl:
-    Description: URL to access the noVNC interface through a web browser
-    Value: !Sub "http://${EC2Instance.PublicIp}:${NoVncPort}"
+    Description: URL to access the first noVNC interface through a web browser
+    Value: !Sub "http://${EC2Instance.PublicIp}:${NoVncPortIntervalStart}"
