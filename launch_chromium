@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SOURCE_DIR=/mnt/ram/dummy
+SOURCE_DIR=/home/vncuser/.config/chromium
 
 DIR=$(mktemp -d)
 echo $DIR

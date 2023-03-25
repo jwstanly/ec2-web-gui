@@ -26,6 +26,11 @@ Parameters:
     Type: String
     Default: password
     Description: Enter password for noVNC access
+
+  VncNum:
+    Type: Number
+    Default: 3
+    Description: Number of VNC instances running
     
 Resources:
   VPC:
@@ -129,10 +134,13 @@ Resources:
 
               git clone https://github.com/jwstanly/ec2-web-gui.git
               sudo cp ec2-web-gui/dwm /usr/bin/dwm
+              sudo cp ec2-web-gui/launch_chromium /usr/bin/launch_chromium
               sudo chmod +x /usr/bin/dwm
 
               sudo su -l -c "vncserver" vncuser
               websockify -D --web=/usr/share/novnc/ ${NoVncPort} localhost:5901
+
+	      ec2-web-gui/launch_vnc ${NoVncPort} ${VncNum}
 
 Outputs:
   AccessUrl:
