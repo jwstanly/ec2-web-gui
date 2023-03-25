@@ -4,7 +4,7 @@ Description: 'EC2 with browser supported GUI using noVNC'
 Parameters:
   Ec2InstanceType:
     Type: String
-    Default: t4g.micro
+    Default: t4g.small
     Description: Enter EC2 instance type to use for the instance
 
   Ec2Ami:
@@ -12,10 +12,15 @@ Parameters:
     Default: ami-0e6694e5116a0086f
     Description: Enter AMI to use for the EC2 instance
 
-  NoVncPort:
+  NoVncPortIntervalStart:
     Type: Number
     Default: 6080
-    Description: Enter port for noVNC access
+    Description: Starting port for noVNC instance access
+
+  NoVncPortIntervalEnd:
+    Type: Number
+    Default: 6082
+    Description: Ending port for noVNC instance access
 
   VncDimensions:
     Type: String
@@ -99,10 +104,10 @@ Resources:
       SecurityGroupIngress:
         - Description: noVNC
           IpProtocol: tcp
-          FromPort: !Ref NoVncPort
-          ToPort: !Ref NoVncPort
+          FromPort: !Ref NoVncPortIntervalStart
+          ToPort: !Ref NoVncPortIntervalEnd
           CidrIp: 0.0.0.0/0
-    
+
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -137,13 +142,9 @@ Resources:
               sudo cp ec2-web-gui/launch_chromium /usr/bin/launch_chromium
               sudo chmod +x /usr/bin/dwm
 
-              sudo su -l -c "vncserver" vncuser
-              websockify -D --web=/usr/share/novnc/ ${NoVncPort} localhost:5901
-
-	      ec2-web-gui/launch_vnc ${NoVncPort} ${VncNum}
+              ec2-web-gui/launch_vnc ${NoVncPort} ${VncNum}
 
 Outputs:
   AccessUrl:
     Description: URL to access the noVNC interface through a web browser
     Value: !Sub "http://${EC2Instance.PublicIp}:${NoVncPort}"
-

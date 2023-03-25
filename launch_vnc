@@ -1,6 +1,7 @@
 #!/bin/sh
 i=0
-while [ $i -lt $2 ]; do
+count=$(($2 - $1 + 1))
+while [ $i -lt $count ]; do
 	sudo su -l -c "vncserver" vncuser
 	websockify -D --web=/usr/share/novnc/ $(($i + $1)) localhost:$((5901+$i))
 	i=$(($i+1))
